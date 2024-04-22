@@ -1,18 +1,34 @@
 use super::Grid;
 
 pub struct GameOfLifeGrid<const WIDTH: usize, const HEIGHT: usize> {
-    grid: [[bool; HEIGHT]; WIDTH],
+    grid: [[Cell; HEIGHT]; WIDTH],
 }
 
-impl<const WIDTH: usize, const HEIGHT: usize> Grid for GameOfLifeGrid<WIDTH, HEIGHT> {
-    fn new() -> Self {
+#[derive(Clone, Copy)]
+pub enum Cell {
+    Dead,
+    Alive,
+}
+
+impl<const WIDTH: usize, const HEIGHT: usize> Default for GameOfLifeGrid<WIDTH, HEIGHT> {
+    fn default() -> Self {
         GameOfLifeGrid {
-            grid: [[false; HEIGHT]; WIDTH],
+            grid: [[Cell::Dead; HEIGHT]; WIDTH],
         }
     }
-
+}
+impl<const WIDTH: usize, const HEIGHT: usize> Grid for GameOfLifeGrid<WIDTH, HEIGHT> {
     fn activate(&mut self, x: usize, y: usize) -> Result<(), super::ActivateCellOutOfBoundsError> {
-        todo!()
+        if let Some(cells) = self.grid.get_mut(y) {
+            if let Some(cell) = cells.get_mut(x) {
+                // TODO
+                Ok(())
+            } else {
+                Err(super::ActivateCellOutOfBoundsError::new(x, y))
+            }
+        } else {
+            Err(super::ActivateCellOutOfBoundsError::new(x, y))
+        }
     }
 }
 
