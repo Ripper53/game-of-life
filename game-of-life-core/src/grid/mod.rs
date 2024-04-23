@@ -1,8 +1,8 @@
 pub mod obj;
 
 pub trait Grid: Default {
-    /// Return true if cell was activated,
-    /// otherwise if cell was out of bounds, return false.
+    /// Return Ok if cell was activated,
+    /// otherwise if cell was out of bounds, return Err.
     fn activate(&mut self, x: usize, y: usize) -> Result<(), ActivateCellOutOfBoundsError>;
 }
 #[derive(PartialEq, Eq, Debug)]
