@@ -34,16 +34,20 @@ impl<const WIDTH: usize, const HEIGHT: usize> Grid for GameOfLifeGrid<WIDTH, HEI
 
 #[cfg(test)]
 mod tests {
+    use proptest::proptest;
+
     use super::*;
 
-    #[test]
-    fn activation_test() {
-        let mut grid = GameOfLifeGrid::<4, 4>::default();
-        let r = grid.grid[1][1];
-        assert_eq!(Cell::Dead, r);
-        let r = grid.activate(1, 1);
-        assert!(r.is_ok());
-        let r = grid.grid[1][1];
-        assert_eq!(Cell::Alive, r);
+    proptest! {
+        #[test]
+        fn activation_test(x in 0usize..4, y in 0usize..4) {
+            let mut grid = GameOfLifeGrid::<4, 4>::default();
+            let r = grid.grid[y][x];
+            assert_eq!(Cell::Dead, r);
+            let r = grid.activate(x, y);
+            assert!(r.is_ok());
+            let r = grid.grid[y][x];
+            assert_eq!(Cell::Alive, r);
+        }
     }
 }
