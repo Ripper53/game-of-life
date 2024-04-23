@@ -53,11 +53,16 @@ mod tests {
     }
     proptest! {
         #[test]
-        fn new_activate_cell_of_of_bounds_error(x in 0usize..WIDTH, y in 0usize..HEIGHT) {
+        fn new_activate_cell_of_of_bounds_error(x in 0usize..usize::MAX, y in 0usize..usize::MAX) {
             let e = ActivateCellOutOfBoundsError::new(x, y);
             assert_eq!(ActivateCellOutOfBoundsError { x: x, y: y }, e);
             assert_eq!(x, e.x());
             assert_eq!(y, e.y());
+        }
+        #[test]
+        fn display_error_test(x in 0usize..usize::MAX, y in 0usize..usize::MAX) {
+            let e = ActivateCellOutOfBoundsError::new(x, y);
+            assert_eq!(format!("cell ({}, {}) is out of bounds of the grid", x, y), e.to_string());
         }
         #[test]
         fn in_bound_check_random(x in 0usize..WIDTH, y in 0usize..HEIGHT) {
@@ -67,7 +72,7 @@ mod tests {
             assert_eq!((), activated.unwrap());
         }
         #[test]
-        fn out_bound_check_random(x in WIDTH..WIDTH*2, y in HEIGHT..HEIGHT*2) {
+        fn out_bound_check_random(x in WIDTH..usize::MAX, y in HEIGHT..usize::MAX) {
             let mut grid = TestGrid::default();
             let activated = grid.activate(x, y);
             assert!(activated.is_err());

@@ -5,4 +5,4 @@ edition = "2021"
 
 [dev-dependencies]
 proptest = "1.4.0"
-
+cargo-mutants = "24.4.0"
