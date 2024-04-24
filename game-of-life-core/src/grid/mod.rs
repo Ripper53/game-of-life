@@ -23,6 +23,8 @@ pub trait Grid: Default {
         .filter(|r| matches!(r, Ok(Cell::Alive)))
         .count()
     }
+    fn width(&self) -> usize;
+    fn height(&self) -> usize;
 }
 
 // No default,
@@ -164,7 +166,7 @@ mod tests {
     proptest! {
         /// Tests the constructor of the `CellOutOfBoundsError` type.
         #[test]
-        fn new_cell_of_of_bounds_error(x in 0usize..usize::MAX, y in 0usize..usize::MAX) {
+        fn new_cell_of_of_bounds_error_test(x in 0usize..usize::MAX, y in 0usize..usize::MAX) {
             let e = CellOutOfBoundsError::new(x, y);
             assert_eq!(CellOutOfBoundsError { x: x, y: y }, e);
             assert_eq!(x, e.x());
@@ -178,7 +180,7 @@ mod tests {
         }
         /// Tests if retrieving a cell within the bounds of the grid works.
         #[test]
-        fn get_in_bound_check_random(x in 0usize..WIDTH, y in 0usize..HEIGHT) {
+        fn get_in_bound_check_random_test(x in 0usize..WIDTH, y in 0usize..HEIGHT) {
             let mut grid = TestGrid::default();
             let activated = grid.get(x, y);
             assert!(activated.is_ok());
@@ -186,7 +188,7 @@ mod tests {
         }
         /// Tests if retrieving a cell outside of the bounds of the grid returns an error.
         #[test]
-        fn get_out_bound_check_random(x in WIDTH..usize::MAX, y in HEIGHT..usize::MAX) {
+        fn get_out_bound_check_random_test(x in WIDTH..usize::MAX, y in HEIGHT..usize::MAX) {
             let mut grid = TestGrid::default();
             let activated = grid.get(x, y);
             assert!(activated.is_err());
@@ -194,7 +196,7 @@ mod tests {
         }
         /// Tests if activating a cell within the bounds of the grid works.
         #[test]
-        fn activate_in_bound_check_random(x in 0usize..WIDTH, y in 0usize..HEIGHT) {
+        fn activate_in_bound_check_random_test(x in 0usize..WIDTH, y in 0usize..HEIGHT) {
             let mut grid = TestGrid::default();
             let activated = grid.activate(x, y);
             assert!(activated.is_ok());
@@ -202,7 +204,7 @@ mod tests {
         }
         /// Tests if activating a cell outside of the bounds of the grid returns an error.
         #[test]
-        fn activate_out_bound_check_random(x in WIDTH..usize::MAX, y in HEIGHT..usize::MAX) {
+        fn activate_out_bound_check_random_test(x in WIDTH..usize::MAX, y in HEIGHT..usize::MAX) {
             let mut grid = TestGrid::default();
             let activated = grid.activate(x, y);
             assert!(activated.is_err());

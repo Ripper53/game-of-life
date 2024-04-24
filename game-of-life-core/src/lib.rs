@@ -41,7 +41,7 @@ mod tests {
     }
     proptest! {
         #[test]
-        fn keep_grid(x in 0..WIDTH, y in 0..HEIGHT) {
+        fn keep_grid_test(x in 0..WIDTH, y in 0..HEIGHT) {
             let mut grid = GameOfLife::<TestGrid>::default();
             let r = grid.grid.activate(x, y);
             assert!(r.is_ok());
@@ -53,7 +53,7 @@ mod tests {
             assert_eq!(expected.unwrap(), r);
         }
         #[test]
-        fn keep_grid_mut(x in 0..WIDTH, y in 0..HEIGHT) {
+        fn keep_grid_mut_test(x in 0..WIDTH, y in 0..HEIGHT) {
             let mut grid = GameOfLife::<TestGrid>::default();
             let r = grid.grid.activate(x, y);
             assert!(r.is_ok());

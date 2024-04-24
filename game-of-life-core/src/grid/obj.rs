@@ -35,6 +35,12 @@ impl<const WIDTH: usize, const HEIGHT: usize> Grid for GameOfLifeGrid<WIDTH, HEI
             Err(CellOutOfBoundsError::new(x, y))
         }
     }
+    fn width(&self) -> usize {
+        WIDTH
+    }
+    fn height(&self) -> usize {
+        HEIGHT
+    }
 }
 
 #[cfg(test)]
@@ -56,6 +62,12 @@ mod tests {
                 assert_eq!(direct_r, r);
             }
         }
+    }
+    #[test]
+    fn grid_size_test() {
+        let grid = TestGrid::default();
+        assert_eq!(WIDTH, grid.width());
+        assert_eq!(HEIGHT, grid.height());
     }
     proptest! {
         #[test]
