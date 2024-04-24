@@ -7,6 +7,22 @@ pub trait Grid: Default {
     /// Return Ok if cell was activated (state became `Cell::Alive`),
     /// otherwise if cell was out of bounds, return Err.
     fn activate(&mut self, x: usize, y: usize) -> Result<(), CellOutOfBoundsError>;
+    /// Returns the number of alive neighbors the cell has.
+    fn neighbor_count(&self, x: usize, y: usize) -> usize {
+        [
+            self.get(x, y + 1),
+            self.get(x + 1, y + 1),
+            self.get(x + 1, y),
+            self.get(x + 1, y - 1),
+            self.get(x, y - 1),
+            self.get(x - 1, y - 1),
+            self.get(x - 1, y),
+            self.get(x - 1, y + 1),
+        ]
+        .into_iter()
+        .filter(|r| matches!(r, Ok(Cell::Alive)))
+        .count()
+    }
 }
 
 // No default,
@@ -54,10 +70,8 @@ mod tests {
     use super::*;
     use obj::*;
     use proptest::prelude::*;
+    use crate::tests::*;
 
-    const WIDTH: usize = 12;
-    const HEIGHT: usize = 12;
-    type TestGrid = GameOfLifeGrid<WIDTH, HEIGHT>;
     /// Tests activating a cell within the grid works,
     /// and activating a cell out of bounds returns an error.
     #[test]
@@ -77,6 +91,75 @@ mod tests {
         let activated = grid.activate(OUT_OF_BOUNDS_WIDTH, 0);
         assert!(activated.is_err());
         assert_eq!(CellOutOfBoundsError::new(OUT_OF_BOUNDS_WIDTH, 0), activated.unwrap_err());
+    }
+    #[test]
+    fn no_neighbor_count_test() {
+        let mut grid = TestGrid::default();
+        let r = grid.neighbor_count(1, 1);
+        assert_eq!(0, r);
+        let r = grid.activate(1, 1);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert_eq!(0, r);
+    }
+    #[test]
+    fn neighbor_count_test() {
+        const POS_X: usize = 1;
+        const POS_Y: usize = 1;
+        let mut grid = TestGrid::default();
+
+        // Activate Neighbors
+        let r = grid.activate(POS_X, POS_Y + 1);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert_eq!(1, r);
+
+        let r = grid.activate(POS_X + 1, POS_Y + 1);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert_eq!(2, r);
+
+        let r = grid.activate(POS_X + 1, POS_Y);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert_eq!(3, r);
+
+        let r = grid.activate(POS_X + 1, POS_Y - 1);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert_eq!(4, r);
+
+        let r = grid.activate(POS_X, POS_Y - 1);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert_eq!(5, r);
+
+        let r = grid.activate(POS_X - 1, POS_Y - 1);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert_eq!(6, r);
+
+        let r = grid.activate(POS_X - 1, POS_Y);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert_eq!(7, r);
+
+        let r = grid.activate(POS_X - 1, POS_Y + 1);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert_eq!(8, r);
+
+        // The cell itself, not its neighbor.
+        let r = grid.activate(POS_X, POS_Y);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert_eq!(8, r);
+
+        // Not a neighbor.
+        let r = grid.activate(POS_X + 2, POS_Y);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert_eq!(8, r);
     }
     proptest! {
         /// Tests the constructor of the `CellOutOfBoundsError` type.
