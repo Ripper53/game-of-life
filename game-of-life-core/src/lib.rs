@@ -67,7 +67,7 @@ mod tests {
         #[test]
         fn next_alone_death_test(x in 0..WIDTH, y in 0..HEIGHT) {
             let mut game = GameOfLife::<TestGrid>::default();
-            game.grid_mut().set(x, y, Cell::Alive);
+            game.grid_mut().set(x, y, Cell::Alive).unwrap();
             game.grid_mut().update();
             let cell = game.grid().get(x, y);
             assert!(cell.is_ok());
@@ -82,8 +82,8 @@ mod tests {
         #[test]
         fn next_underpopulation_death_test(x in 0..WIDTH-1, y in 0..HEIGHT) {
             let mut game = GameOfLife::<TestGrid>::default();
-            game.grid_mut().set(x, y, Cell::Alive);
-            game.grid_mut().set(x + 1, y, Cell::Alive);
+            game.grid_mut().set(x, y, Cell::Alive).unwrap();
+            game.grid_mut().set(x + 1, y, Cell::Alive).unwrap();
             game.grid_mut().update();
             let cell = game.grid().get(x, y);
             assert!(cell.is_ok());
@@ -103,11 +103,11 @@ mod tests {
         #[test]
         fn next_overpopulation_death_test(x in 1..WIDTH-1, y in 0..HEIGHT-1) {
             let mut game = GameOfLife::<TestGrid>::default();
-            game.grid_mut().set(x, y, Cell::Alive);
-            game.grid_mut().set(x + 1, y, Cell::Alive);
-            game.grid_mut().set(x + 1, y + 1, Cell::Alive);
-            game.grid_mut().set(x, y + 1, Cell::Alive);
-            game.grid_mut().set(x - 1, y + 1, Cell::Alive);
+            game.grid_mut().set(x, y, Cell::Alive).unwrap();
+            game.grid_mut().set(x + 1, y, Cell::Alive).unwrap();
+            game.grid_mut().set(x + 1, y + 1, Cell::Alive).unwrap();
+            game.grid_mut().set(x, y + 1, Cell::Alive).unwrap();
+            game.grid_mut().set(x - 1, y + 1, Cell::Alive).unwrap();
             game.grid_mut().update();
             let cell = game.grid().get(x, y);
             assert!(cell.is_ok());
@@ -122,9 +122,9 @@ mod tests {
         fn next_produce_square_pattern_test(x in 1..WIDTH-1, y in 1..HEIGHT-1) {
             let mut game = GameOfLife::<TestGrid>::default();
             // Keep cell at (1, 1) alive
-            game.grid_mut().set(x, y, Cell::Alive);
-            game.grid_mut().set(x + 1, y, Cell::Alive);
-            game.grid_mut().set(x, y + 1, Cell::Alive);
+            game.grid_mut().set(x, y, Cell::Alive).unwrap();
+            game.grid_mut().set(x + 1, y, Cell::Alive).unwrap();
+            game.grid_mut().set(x, y + 1, Cell::Alive).unwrap();
             game.grid_mut().update();
             // Run behavior a few times
             // state should not change after

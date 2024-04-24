@@ -78,7 +78,6 @@ impl std::fmt::Display for CellOutOfBoundsError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use obj::*;
     use proptest::prelude::*;
     use crate::tests::*;
 
@@ -309,7 +308,7 @@ mod tests {
         /// Tests if retrieving a cell within the bounds of the grid works.
         #[test]
         fn get_in_bound_check_random_test(x in 0usize..WIDTH, y in 0usize..HEIGHT) {
-            let mut grid = TestGrid::default();
+            let grid = TestGrid::default();
             let activated = grid.get(x, y);
             assert!(activated.is_ok());
             assert_eq!(Cell::Dead, activated.unwrap());
@@ -317,7 +316,7 @@ mod tests {
         /// Tests if retrieving a cell outside of the bounds of the grid returns an error.
         #[test]
         fn get_out_bound_check_random_test(x in WIDTH..usize::MAX, y in HEIGHT..usize::MAX) {
-            let mut grid = TestGrid::default();
+            let grid = TestGrid::default();
             let activated = grid.get(x, y);
             assert!(activated.is_err());
             assert_eq!(CellOutOfBoundsError::new(x, y), activated.unwrap_err());

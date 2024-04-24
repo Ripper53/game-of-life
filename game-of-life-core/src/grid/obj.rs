@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn grid_default_test() {
-        let mut grid = TestGrid::default();
+        let grid = TestGrid::default();
         for x in 0..WIDTH {
             for y in 0..HEIGHT {
                 let r = grid.get(x, y);
