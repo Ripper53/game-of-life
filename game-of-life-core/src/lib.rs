@@ -1,6 +1,6 @@
 use grid::{Cell, Grid};
 
-mod grid;
+pub mod grid;
 
 pub struct GameOfLife<T: Grid> {
     grid: T,
