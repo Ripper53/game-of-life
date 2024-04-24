@@ -1,13 +1,19 @@
 use super::{Cell, CellOutOfBoundsError, Grid};
 
 pub struct GameOfLifeGrid<const WIDTH: usize, const HEIGHT: usize> {
-    grid: [[Cell; HEIGHT]; WIDTH],
+    grid: [[CellHolder; HEIGHT]; WIDTH],
+}
+
+#[derive(Clone, Copy, Debug)]
+struct CellHolder {
+    cell: Cell,
+    change_to: Option<Cell>,
 }
 
 impl<const WIDTH: usize, const HEIGHT: usize> Default for GameOfLifeGrid<WIDTH, HEIGHT> {
     fn default() -> Self {
         GameOfLifeGrid {
-            grid: [[Cell::Dead; HEIGHT]; WIDTH],
+            grid: [[CellHolder { cell: Cell::Dead, change_to: None }; HEIGHT]; WIDTH],
         }
     }
 }
@@ -15,7 +21,7 @@ impl<const WIDTH: usize, const HEIGHT: usize> Grid for GameOfLifeGrid<WIDTH, HEI
     fn get(&self, x: usize, y: usize) -> Result<Cell, CellOutOfBoundsError> {
         if let Some(cells) = self.grid.get(y) {
             if let Some(cell) = cells.get(x) {
-                Ok(*cell)
+                Ok(cell.cell)
             } else {
                 Err(CellOutOfBoundsError::new(x, y))
             }
@@ -23,16 +29,23 @@ impl<const WIDTH: usize, const HEIGHT: usize> Grid for GameOfLifeGrid<WIDTH, HEI
             Err(CellOutOfBoundsError::new(x, y))
         }
     }
-    fn activate(&mut self, x: usize, y: usize) -> Result<(), CellOutOfBoundsError> {
+    fn set(&mut self, x: usize, y: usize, cell: Cell) -> Result<(), CellOutOfBoundsError> {
         if let Some(cells) = self.grid.get_mut(y) {
-            if let Some(cell) = cells.get_mut(x) {
-                *cell = Cell::Alive;
+            if let Some(cell_to_change) = cells.get_mut(x) {
+                cell_to_change.change_to = Some(cell);
                 Ok(())
             } else {
                 Err(CellOutOfBoundsError::new(x, y))
             }
         } else {
             Err(CellOutOfBoundsError::new(x, y))
+        }
+    }
+    fn update(&mut self) {
+        for cell in self.grid.iter_mut().flatten() {
+            if let Some(updated_cell) = cell.change_to.take() {
+                cell.cell = updated_cell;
+            }
         }
     }
     fn width(&self) -> usize {
@@ -58,7 +71,7 @@ mod tests {
                 assert!(r.is_ok());
                 let r = r.unwrap();
                 assert_eq!(Cell::Dead, r);
-                let direct_r = grid.grid[y][x];
+                let direct_r = grid.grid[y][x].cell;
                 assert_eq!(direct_r, r);
             }
         }
@@ -73,11 +86,11 @@ mod tests {
         #[test]
         fn activation_test(x in 0usize..WIDTH, y in 0usize..HEIGHT) {
             let mut grid = TestGrid::default();
-            let r = grid.grid[y][x];
+            let r = grid.grid[y][x].cell;
             assert_eq!(Cell::Dead, r);
-            let r = grid.activate(x, y);
+            let r = grid.set(x, y, Cell::Alive);
             assert!(r.is_ok());
-            let r = grid.grid[y][x];
+            let r = grid.grid[y][x].change_to.unwrap();
             assert_eq!(Cell::Alive, r);
         }
     }

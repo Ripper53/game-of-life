@@ -1,4 +1,4 @@
-use grid::Grid;
+use grid::{Cell, Grid};
 
 mod grid;
 
@@ -14,7 +14,33 @@ impl<T: Grid> Default for GameOfLife<T> {
 
 impl<T: Grid> GameOfLife<T> {
     pub fn next(&mut self) {
-        //self.grid.neighbor_count(x, y)
+        for y in 0..self.grid.height() {
+            for x in 0..self.grid.width() {
+                // We know the neighbor is in bounds
+                // because we use the grid's width and height
+                // for coordinates.
+                // TODO: use an iterator that is provided by the grid
+                // instead of manually accessing the indexes.
+                let count = self.grid.neighbor_count(x, y).unwrap();
+                match count {
+                    0..=1 => {
+                        // Death
+                        self.grid.set(x, y, Cell::Dead).unwrap();
+                    },
+                    2 => {
+                        // Stayin' Alive (or Dead)
+                    },
+                    3 => {
+                        // Reproduction
+                        self.grid.set(x, y, Cell::Alive).unwrap();
+                    }
+                    _ => {
+                        // Overpopulation
+                        self.grid.set(x, y, Cell::Dead).unwrap();
+                    },
+                }
+            }
+        }
     }
     pub fn grid(&self) -> &T {
         &self.grid
@@ -43,7 +69,8 @@ mod tests {
         #[test]
         fn keep_grid_test(x in 0..WIDTH, y in 0..HEIGHT) {
             let mut grid = GameOfLife::<TestGrid>::default();
-            let r = grid.grid.activate(x, y);
+            let r = grid.grid.set(x, y, Cell::Alive);
+            grid.grid.update();
             assert!(r.is_ok());
             let r = grid.grid().get(x, y);
             assert!(r.is_ok());
@@ -55,7 +82,8 @@ mod tests {
         #[test]
         fn keep_grid_mut_test(x in 0..WIDTH, y in 0..HEIGHT) {
             let mut grid = GameOfLife::<TestGrid>::default();
-            let r = grid.grid.activate(x, y);
+            let r = grid.grid.set(x, y, Cell::Alive);
+            grid.grid.update();
             assert!(r.is_ok());
             let r = grid.grid_mut().get(x, y);
             assert!(r.is_ok());

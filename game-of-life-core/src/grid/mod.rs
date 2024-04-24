@@ -4,26 +4,28 @@ pub trait Grid: Default {
     /// Return Ok with a copy of the cell's value if in bounds,
     /// otherwise if cell was out of bounds, return Err.
     fn get(&self, x: usize, y: usize) -> Result<Cell, CellOutOfBoundsError>;
-    /// Return Ok if cell was activated (state became `Cell::Alive`),
+    /// Return Ok if cell's state will be changed when calling [`update`](Grid::update),
     /// otherwise if cell was out of bounds, return Err.
-    fn activate(&mut self, x: usize, y: usize) -> Result<(), CellOutOfBoundsError>;
+    fn set(&mut self, x: usize, y: usize, cell: Cell) -> Result<(), CellOutOfBoundsError>;
+    /// Updates all cell states based of those [`set`](Grid::set).
+    fn update(&mut self);
     /// Returns the number of alive neighbors the cell has,
     /// if out of bounds, returns Err.
     fn neighbor_count(&self, x: usize, y: usize) -> Result<usize, CellOutOfBoundsError> {
         match self.get(x, y) {
             Ok(_) => {
                 Ok([
-                    self.get(x, y + 1),
-                    self.get(x + 1, y + 1),
-                    self.get(x + 1, y),
-                    self.get(x + 1, y - 1),
-                    self.get(x, y - 1),
-                    self.get(x - 1, y - 1),
-                    self.get(x - 1, y),
-                    self.get(x - 1, y + 1),
+                    self.get(x, y + 1).ok(),
+                    self.get(x + 1, y + 1).ok(),
+                    self.get(x + 1, y).ok(),
+                    if y == 0 { None } else { self.get(x + 1, y - 1).ok() },
+                    if y == 0 { None } else { self.get(x, y - 1).ok() },
+                    if x == 0 || y == 0 { None } else { self.get(x - 1, y - 1).ok() },
+                    if x == 0 { None } else { self.get(x - 1, y).ok() },
+                    if x == 0 { None } else { self.get(x - 1, y + 1).ok() },
                 ]
                 .into_iter()
-                .filter(|r| matches!(r, Ok(Cell::Alive)))
+                .filter(|r| matches!(r, Some(Cell::Alive)))
                 .count())
             },
             Err(e) => Err(e),
@@ -85,18 +87,18 @@ mod tests {
     #[test]
     fn activate_bounds_check_test() {
         let mut grid = TestGrid::default();
-        let activated = grid.activate(1, 1);
+        let activated = grid.set(1, 1, Cell::Alive);
         assert!(activated.is_ok());
         assert_eq!((), activated.unwrap());
         const OUT_OF_BOUNDS_WIDTH: usize = WIDTH + 1;
         const OUT_OF_BOUNDS_HEIGHT: usize = HEIGHT + 1;
-        let activated = grid.activate(OUT_OF_BOUNDS_WIDTH, OUT_OF_BOUNDS_HEIGHT);
+        let activated = grid.set(OUT_OF_BOUNDS_WIDTH, OUT_OF_BOUNDS_HEIGHT, Cell::Alive);
         assert!(activated.is_err());
         assert_eq!(CellOutOfBoundsError::new(OUT_OF_BOUNDS_WIDTH, OUT_OF_BOUNDS_HEIGHT), activated.unwrap_err());
-        let activated = grid.activate(0, OUT_OF_BOUNDS_HEIGHT);
+        let activated = grid.set(0, OUT_OF_BOUNDS_HEIGHT, Cell::Alive);
         assert!(activated.is_err());
         assert_eq!(CellOutOfBoundsError::new(0, OUT_OF_BOUNDS_HEIGHT), activated.unwrap_err());
-        let activated = grid.activate(OUT_OF_BOUNDS_WIDTH, 0);
+        let activated = grid.set(OUT_OF_BOUNDS_WIDTH, 0, Cell::Alive);
         assert!(activated.is_err());
         assert_eq!(CellOutOfBoundsError::new(OUT_OF_BOUNDS_WIDTH, 0), activated.unwrap_err());
     }
@@ -106,21 +108,35 @@ mod tests {
         let r = grid.neighbor_count(1, 1);
         assert!(r.is_ok());
         assert_eq!(0, r.unwrap());
-        let r = grid.activate(1, 1);
+        let r = grid.set(1, 1, Cell::Alive);
         assert!(r.is_ok());
         let r = grid.neighbor_count(1, 1);
         assert!(r.is_ok());
         assert_eq!(0, r.unwrap());
     }
     #[test]
-    fn out_of_bounds_neightbor_count_test() {
+    fn out_of_bounds_neighbor_count_test() {
         let mut grid = TestGrid::default();
         let r = grid.neighbor_count(WIDTH, HEIGHT);
         assert!(r.is_err());
-        let r = grid.activate(WIDTH - 1, HEIGHT - 1);
+        let r = grid.set(WIDTH - 1, HEIGHT - 1, Cell::Alive);
         assert!(r.is_ok());
         let r = grid.neighbor_count(WIDTH, HEIGHT);
         assert!(r.is_err());
+    }
+    /// Test neighbor could underflow (below 0)
+    /// when checking for a neighbor,
+    /// make sure we do not check for neighbors
+    /// below 0 which will underflow `usize`.
+    #[test]
+    fn underflow_neighbor_count_test() {
+        let grid = TestGrid::default();
+        let r = grid.neighbor_count(0, 0);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 0);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(0, 1);
+        assert!(r.is_ok());
     }
     #[test]
     fn neighbor_count_test() {
@@ -129,64 +145,148 @@ mod tests {
         let mut grid = TestGrid::default();
 
         // Activate Neighbors
-        let r = grid.activate(POS_X, POS_Y + 1);
+        let r = grid.set(POS_X, POS_Y + 1, Cell::Alive);
         assert!(r.is_ok());
+        grid.update();
         let r = grid.neighbor_count(1, 1);
         assert!(r.is_ok());
         assert_eq!(1, r.unwrap());
 
-        let r = grid.activate(POS_X + 1, POS_Y + 1);
+        let r = grid.set(POS_X + 1, POS_Y + 1, Cell::Alive);
         assert!(r.is_ok());
+        grid.update();
         let r = grid.neighbor_count(1, 1);
         assert!(r.is_ok());
         assert_eq!(2, r.unwrap());
 
-        let r = grid.activate(POS_X + 1, POS_Y);
+        let r = grid.set(POS_X + 1, POS_Y, Cell::Alive);
         assert!(r.is_ok());
+        grid.update();
         let r = grid.neighbor_count(1, 1);
         assert!(r.is_ok());
         assert_eq!(3, r.unwrap());
 
-        let r = grid.activate(POS_X + 1, POS_Y - 1);
+        let r = grid.set(POS_X + 1, POS_Y - 1, Cell::Alive);
         assert!(r.is_ok());
+        grid.update();
         let r = grid.neighbor_count(1, 1);
         assert!(r.is_ok());
         assert_eq!(4, r.unwrap());
 
-        let r = grid.activate(POS_X, POS_Y - 1);
+        let r = grid.set(POS_X, POS_Y - 1, Cell::Alive);
         assert!(r.is_ok());
+        grid.update();
         let r = grid.neighbor_count(1, 1);
         assert!(r.is_ok());
         assert_eq!(5, r.unwrap());
 
-        let r = grid.activate(POS_X - 1, POS_Y - 1);
+        let r = grid.set(POS_X - 1, POS_Y - 1, Cell::Alive);
         assert!(r.is_ok());
+        grid.update();
         let r = grid.neighbor_count(1, 1);
         assert!(r.is_ok());
         assert_eq!(6, r.unwrap());
 
-        let r = grid.activate(POS_X - 1, POS_Y);
+        let r = grid.set(POS_X - 1, POS_Y, Cell::Alive);
         assert!(r.is_ok());
+        grid.update();
         let r = grid.neighbor_count(1, 1);
         assert!(r.is_ok());
         assert_eq!(7, r.unwrap());
 
-        let r = grid.activate(POS_X - 1, POS_Y + 1);
+        let r = grid.set(POS_X - 1, POS_Y + 1, Cell::Alive);
         assert!(r.is_ok());
+        grid.update();
         let r = grid.neighbor_count(1, 1);
         assert!(r.is_ok());
         assert_eq!(8, r.unwrap());
 
         // The cell itself, not its neighbor.
-        let r = grid.activate(POS_X, POS_Y);
+        let r = grid.set(POS_X, POS_Y, Cell::Alive);
         assert!(r.is_ok());
+        grid.update();
         let r = grid.neighbor_count(1, 1);
         assert!(r.is_ok());
         assert_eq!(8, r.unwrap());
 
         // Not a neighbor.
-        let r = grid.activate(POS_X + 2, POS_Y);
+        let r = grid.set(POS_X + 2, POS_Y, Cell::Alive);
         assert!(r.is_ok());
+        grid.update();
+        let r = grid.neighbor_count(1, 1);
+        assert!(r.is_ok());
+        assert_eq!(8, r.unwrap());
+    }
+    /// Test the amount of neighbors a cell has
+    /// with inconsistent update, meaning we do not
+    /// update the grid with every call of [`set`](Grid::set).
+    #[test]
+    fn inconsistent_update_neighbor_count_test() {
+        const POS_X: usize = 1;
+        const POS_Y: usize = 1;
+        let mut grid = TestGrid::default();
+
+        // Activate Neighbors
+        let r = grid.set(POS_X, POS_Y + 1, Cell::Alive);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert!(r.is_ok());
+        assert_eq!(0, r.unwrap());
+
+        let r = grid.set(POS_X + 1, POS_Y + 1, Cell::Alive);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert!(r.is_ok());
+        assert_eq!(0, r.unwrap());
+
+        let r = grid.set(POS_X + 1, POS_Y, Cell::Alive);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert!(r.is_ok());
+        assert_eq!(0, r.unwrap());
+
+        let r = grid.set(POS_X + 1, POS_Y - 1, Cell::Alive);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert!(r.is_ok());
+        assert_eq!(0, r.unwrap());
+
+        let r = grid.set(POS_X, POS_Y - 1, Cell::Alive);
+        assert!(r.is_ok());
+        grid.update();
+        let r = grid.neighbor_count(1, 1);
+        assert!(r.is_ok());
+        assert_eq!(5, r.unwrap());
+
+        let r = grid.set(POS_X - 1, POS_Y - 1, Cell::Alive);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert!(r.is_ok());
+        assert_eq!(5, r.unwrap());
+
+        let r = grid.set(POS_X - 1, POS_Y, Cell::Alive);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert!(r.is_ok());
+        assert_eq!(5, r.unwrap());
+
+        let r = grid.set(POS_X - 1, POS_Y + 1, Cell::Alive);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert!(r.is_ok());
+        assert_eq!(5, r.unwrap());
+
+        // The cell itself, not its neighbor.
+        let r = grid.set(POS_X, POS_Y, Cell::Alive);
+        assert!(r.is_ok());
+        let r = grid.neighbor_count(1, 1);
+        assert!(r.is_ok());
+        assert_eq!(5, r.unwrap());
+
+        // Not a neighbor.
+        let r = grid.set(POS_X + 2, POS_Y, Cell::Alive);
+        assert!(r.is_ok());
+        grid.update();
         let r = grid.neighbor_count(1, 1);
         assert!(r.is_ok());
         assert_eq!(8, r.unwrap());
@@ -225,18 +325,59 @@ mod tests {
         /// Tests if activating a cell within the bounds of the grid works.
         #[test]
         fn activate_in_bound_check_random_test(x in 0usize..WIDTH, y in 0usize..HEIGHT) {
-            let mut grid = TestGrid::default();
-            let activated = grid.activate(x, y);
-            assert!(activated.is_ok());
-            assert_eq!((), activated.unwrap());
+            set_in_bound_check_random_test(x, y, Cell::Alive)
+        }
+        /// Tests if deactivating a cell within the bounds of the grid works.
+        #[test]
+        fn deactivate_in_bound_check_random_test(x in 0usize..WIDTH, y in 0usize..HEIGHT) {
+            set_in_bound_check_random_test(x, y, Cell::Dead)
         }
         /// Tests if activating a cell outside of the bounds of the grid returns an error.
         #[test]
         fn activate_out_bound_check_random_test(x in WIDTH..usize::MAX, y in HEIGHT..usize::MAX) {
-            let mut grid = TestGrid::default();
-            let activated = grid.activate(x, y);
-            assert!(activated.is_err());
-            assert_eq!(CellOutOfBoundsError::new(x, y), activated.unwrap_err());
+            set_out_bound_check_random_test(x, y, Cell::Alive)
         }
+        /// Tests if deactivating a cell outside of the bounds of the grid returns an error.
+        #[test]
+        fn deactivate_out_bound_check_random_test(x in WIDTH..usize::MAX, y in HEIGHT..usize::MAX) {
+            set_out_bound_check_random_test(x, y, Cell::Dead)
+        }
+        /// Tests if cell changes only after calling [`update`](Grid::update).
+        #[test]
+        fn update_test(x in 0..WIDTH, y in 0..HEIGHT) {
+            let mut grid = TestGrid::default();
+            let r = grid.set(x, y, Cell::Dead);
+            assert!(r.is_ok());
+            grid.update();
+            let cell = grid.get(x, y);
+            assert!(cell.is_ok());
+            assert_eq!(Cell::Dead, cell.unwrap());
+            let r = grid.set(x, y, Cell::Alive);
+            assert!(r.is_ok());
+            let cell = grid.get(x, y);
+            assert!(cell.is_ok());
+            assert_eq!(Cell::Dead, cell.unwrap());
+            grid.update();
+            let cell = grid.get(x, y);
+            assert!(cell.is_ok());
+            assert_eq!(Cell::Alive, cell.unwrap());
+        }
+    }
+
+
+    // Helper Functions
+    // These are called in tests above.
+
+    fn set_in_bound_check_random_test(x: usize, y: usize, cell: Cell) {
+        let mut grid = TestGrid::default();
+        let activated = grid.set(x, y, cell);
+        assert!(activated.is_ok());
+        assert_eq!((), activated.unwrap());
+    }
+    fn set_out_bound_check_random_test(x: usize, y: usize, cell: Cell) {
+        let mut grid = TestGrid::default();
+        let activated = grid.set(x, y, cell);
+        assert!(activated.is_err());
+        assert_eq!(CellOutOfBoundsError::new(x, y), activated.unwrap_err());
     }
 }
