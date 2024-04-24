@@ -17,10 +17,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build
+      working-directory: ./game-of-life-core
       run: cargo build --verbose
     - name: Run tests
+      working-directory: ./game-of-life-core
       run: cargo test --verbose
     - name: Install Cargo Mutants
+      working-directory: ./game-of-life-core
       run: cargo install --locked cargo-mutants
     - name: Run mutants
+      working-directory: ./game-of-life-core
       run: cargo mutants
